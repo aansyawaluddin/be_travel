@@ -18,7 +18,7 @@ exports.getAllBookings = async (req, res) => {
             where: filterOptions,
             include: {
                 package: true,
-                staff: { select: { nama: true, username: true } }
+                staff: { select: { nama: true, username: true } } 
             },
             orderBy: { createdAt: 'desc' }
         });
@@ -32,15 +32,10 @@ exports.getAllBookings = async (req, res) => {
 
 exports.createBooking = async (req, res) => {
     const { namaPemesan, kontak, packageId, tanggalBerangkat, jumlahPeserta, catatan } = req.body;
-    const staffId = req.staff.id;
+    const staffId = req.staff.id; 
 
     if (!kontak) return res.status(400).json({ error: "Kontak wajib diisi" });
     if (!packageId) return res.status(400).json({ error: "Paket wisata wajib dipilih" });
-
-    const parsedPackageId = parseInt(packageId);
-    if (isNaN(parsedPackageId)) {
-        return res.status(400).json({ error: "Paket wisata tidak valid" });
-    }
 
     const parsedPeserta = parseInt(jumlahPeserta);
     if (isNaN(parsedPeserta) || parsedPeserta < 1) {
@@ -55,18 +50,18 @@ exports.createBooking = async (req, res) => {
     }
 
     try {
-        const travelPackage = await prisma.package.findUnique({ where: { id: parsedPackageId } });
+        const travelPackage = await prisma.package.findUnique({ where: { id: packageId } });
         if (!travelPackage) return res.status(404).json({ error: "Paket wisata tidak ditemukan" });
 
         const currentBooked = await prisma.booking.aggregate({
             where: {
-                packageId: parsedPackageId, 
+                packageId,
                 status: { in: ["Menunggu", "Dikonfirmasi", "Selesai"] }
             },
             _sum: { jumlahPeserta: true }
         });
-
         const totalPesertaSekarang = currentBooked._sum.jumlahPeserta || 0;
+
         if (totalPesertaSekarang + parsedPeserta > travelPackage.kapasitas) {
             return res.status(400).json({
                 error: `Kuota penuh! Sisa kapasitas untuk paket ini adalah ${travelPackage.kapasitas - totalPesertaSekarang} peserta.`
@@ -77,7 +72,7 @@ exports.createBooking = async (req, res) => {
             data: {
                 namaPemesan,
                 kontak,
-                packageId: parsedPackageId, 
+                packageId,
                 tanggalBerangkat: parsedDate,
                 jumlahPeserta: parsedPeserta,
                 hargaPerOrang: travelPackage.harga,
@@ -127,7 +122,7 @@ exports.updateBooking = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
     const { id } = req.params;
-    const { newStatus } = req.body;
+    const { newStatus } = req.body; 
 
     try {
         const booking = await prisma.booking.findUnique({ where: { id: parseInt(id) } });
@@ -138,8 +133,8 @@ exports.updateStatus = async (req, res) => {
         const allowedTransitions = {
             "Menunggu": ["Dikonfirmasi", "Dibatalkan"],
             "Dikonfirmasi": ["Selesai", "Dibatalkan"],
-            "Selesai": [],
-            "Dibatalkan": []
+            "Selesai": [],       
+            "Dibatalkan": [] 
         };
 
         if (!allowedTransitions[currentStatus].includes(newStatus)) {
